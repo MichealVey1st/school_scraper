@@ -16,8 +16,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # gets username/email and password from loaded .env file
-username = os.getenv('username')
+username = os.getenv('email')
 main_password = os.getenv('main_password')
+main_url = os.getenv('main_url')
 
 # sets the browser to firefox
 driver = webdriver.Firefox()
@@ -29,7 +30,7 @@ wait = WebDriverWait(driver, timeout=10)
 driver.implicitly_wait(.05)
 
 # browses to the canvas page
-driver.get()
+driver.get(main_url)
 
 # finds the link for student and clicks it sending to the google login
 driver.find_element(By.ID, 'students').click()

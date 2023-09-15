@@ -17,7 +17,7 @@ load_dotenv()
 
 # sets url, username, and password
 url = os.getenv('online_url')
-username = os.getenv('username')
+username = os.getenv('email')
 online_password = os.getenv('online_password')
 
 # sets the browser to firefox
