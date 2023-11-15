@@ -209,13 +209,13 @@ def enumerate_assignments():
 
             for ig_info in ig_info_elements:
                 print(ig_info)
-                assignment_data = {}
+                assignment_data1 = {}
                 
                 if assignment_page:
                     # Extract assignment name and href on assignments page
                     ig_title = ig_info.find_element(By.CLASS_NAME, "ig-title")
-                    assignment_data["name"] = ig_title.text
-                    assignment_data["href"] = ig_title.get_attribute("href")
+                    assignment_data1["name"] = ig_title.text
+                    assignment_data1["href"] = ig_title.get_attribute("href")
 
                     try:
                         ig_details = ig_info.find_element(By.CLASS_NAME, "ig-info")
@@ -224,31 +224,31 @@ def enumerate_assignments():
                         # Decide what format it is and add it to formatnum to be passed in to tell the converter which format converter to use
                         formatnum = detect_date_format(due_date_text)
                         # Convert the date string to the right format and store it in the dictionary
-                        assignment_data["due_date"] = convert_date_string(due_date_text, formatnum)
+                        assignment_data1["due_date"] = convert_date_string(due_date_text, formatnum)
                     except:
                         # No due date case
-                        assignment_data["due_date"] = "N/A"
+                        assignment_data1["due_date"] = "N/A"
                         print("! No due date for this assignment !")
 
-                    assignment_data["class"] = course_name
+                    assignment_data1["class"] = course_name
                     # Add the assignment data to the list
-                    assignment_info_list.append(assignment_data)
+                    assignment_info_list.append(assignment_data1)
 
                 else:
-                    ig_title = ig_info.find_element(By.XPATH, "//a[@class = 'ig-title title item_link']").text
+                    ig_title = ig_info.find_element(By.CLASS_NAME, "ig-title title item_link")
                     print(ig_title)
                     link = ig_title.get_attribute("href")
                     print(link+"\n")
-                    assignment_data["name"] = ig_title.text
-                    assignment_data["href"] = ig_title.get_attribute("href")
+                    assignment_data1["name"] = ig_title.text
+                    assignment_data1["href"] = ig_title.get_attribute("href")
 
-                    due_date_text = ig_title.find_element(By.XPATH, "//div[@class = 'due_date_display ig-details__item']")
+                    due_date_text = ig_info.find_element(By.CLASS_NAME, "due_date_display ig-details__item").text
 
                     formatnum = detect_date_format(due_date_text)
 
-                    assignment_data["due_date"] = convert_date_string(due_date_text, formatnum)
-                    assignment_data["class"] = course_name
-                    assignment_info_list.append(assignment_data)
+                    assignment_data1["due_date"] = convert_date_string(due_date_text, formatnum)
+                    assignment_data1["class"] = course_name
+                    assignment_info_list.append(assignment_data1)
         
         c += 1
 
