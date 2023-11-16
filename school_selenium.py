@@ -78,6 +78,7 @@ def convert_date_string(date_str, format_choice):
 # loads .env file
 load_dotenv()
 
+half_assignment_info_list = []
 assignment_info_list = []
 
 # sets the browser to firefox
@@ -143,6 +144,17 @@ def regular():
 
     enumerate_assignments()
 
+def check_grade(class_link):
+    grade_link = class_link + "/grades"
+
+    driver.get(grade_link)
+
+    grade = driver.find_elements(By.CLASS_NAME, "grade").text
+
+    grade = float(grade.strip("%"))/100
+
+    return grade
+
 def enumerate_assignments():
     # waits until it finds the element the class name
     # NOTE IT HAS TO BE SURROUNDED BY TWO PARENTHESIS OTHERWISE IT LOOKS FOR THE ELEMENT "By.CLASS_NAME" WHICH IS NOT WHAT ITS SUPPOSED TO BE LOOKING FOR
@@ -183,9 +195,10 @@ def enumerate_assignments():
         href = link
         class_name = courses[c]
         assignment_page = True
+        class_grade = check_grade(href)
         if href:
             # Combine base url with half href to make it complete
-            print("printing base_url: ", base_url, "\nprinting href", href, "\n")
+            print("printing base_url: ", base_url, "\nprinting href: ", href, "\n")
             absolute_url =  href + "/assignments"
             # debug check
             print("printing absolute_url", absolute_url)
@@ -231,8 +244,9 @@ def enumerate_assignments():
                         print("! No due date for this assignment !")
 
                     assignment_data1["class"] = course_name
+                    assignment_data1["class_grade"] = class_grade
                     # Add the assignment data to the list
-                    assignment_info_list.append(assignment_data1)
+                    half_assignment_info_list.append(assignment_data1)
 
                 else:
                     ig_title = ig_info.find_element(By.CLASS_NAME, "ig-title title item_link")
@@ -248,29 +262,65 @@ def enumerate_assignments():
 
                     assignment_data1["due_date"] = convert_date_string(due_date_text, formatnum)
                     assignment_data1["class"] = course_name
-                    assignment_info_list.append(assignment_data1)
+                    assignment_data1["class_grade"] = class_grade
+                    half_assignment_info_list.append(assignment_data1)
         
         c += 1
 
+    add_completion_check(half_assignment_info_list)
+
     driver.close()
 
+def add_completion_check(unfinished_list):
+    for each in unfinished_list:
+        assignment_data = {}
+
+        name = each["name"]
+        href = each["href"]
+        due_date = each["due_date"]
+        class_name = each["class"]
+        class_grade = each["class_grade"]
+
+        driver.get(href)
+
+        # Add measures in case link listed is broken
+
+        try:
+            driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/div[2]/div[1]/span/span[1]/span/span[2]/div/span/span[2]/div[2]/span/time")
+            continue
 
 
+        except:
+            
+            try:
+                driver.find_element(By.CLASS_NAME, "ic-Error-page")
+                print("The "+name+" link was bad and returned with a error page")
+                continue
+            
+            except:
+                assignment_data["name"] = name
+                assignment_data["href"] = href
+                assignment_data["due_date"] = due_date
+                assignment_data["class"] = class_name
+                assignment_data["class_grade"] = class_grade
+                assignment_info_list.append(assignment_data)
 
 def assignment_sort():
-    sorted_list = sorted(assignment_info_list, key=lambda x: x["due_date"])
+    today = datetime.now()
+    sorted_list = sorted(assignment_info_list, key=lambda x: (datetime.fromisoformat(x["due_date"]), x["class_grade"]))
     return sorted_list
 
 def assignment_print(sorted_assignment_info_list):
     # give some room between the debug prints
     print("\n\n\n\n\n\n")
 
-    # Print the assignment_info_list containing dictionaries full of the assignment the data 
+    # Print the half_assignment_info_list containing dictionaries full of the assignment the data 
     for assignment_data in sorted_assignment_info_list:
         print("Name: ", assignment_data["name"])
         print("Link: ", assignment_data["href"])
         print("Due Date (Sortable): ", assignment_data["due_date"])
         print("Class: ", assignment_data["class"])
+        print("Class Grade: ", assignment_data["class_grade"])
         print("\n")
 
 
