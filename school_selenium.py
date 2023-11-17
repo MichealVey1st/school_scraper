@@ -1,4 +1,5 @@
 # imports driver selections
+import time
 from selenium import webdriver 
 # imports the keyboard simulator
 from selenium.webdriver.common.keys import Keys
@@ -137,6 +138,7 @@ def check_grade(class_link):
     driver.get(grade_link)
 
     wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[2]/aside/div/div[1]/span[1]")))
+    time.sleep(5)
     grade = driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[2]/aside/div/div[1]/span[1]")
 
     print(grade)
@@ -240,10 +242,14 @@ def enumerate_assignments():
                     assignment_data1["class"] = course_name
                     assignment_data1["class_grade"] = class_grade
                     # Add the assignment data to the list
+                    print(assignment_data1)
                     half_assignment_info_list.append(assignment_data1)
 
                 else:
                     ig_title = ig_info.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div[5]/div[2]/div[5]/div[2]/ul/li[2]/div/div[1]/div[1]/span/a")
+                    
+                    if (ig_info.find_element(By.XPATH, "../span")).get_attribute("title") == "Page" :
+                        pass
                     print(ig_title)
                     link = ig_title.get_attribute("href")
                     print(link+"\n")
@@ -263,6 +269,7 @@ def enumerate_assignments():
                     assignment_data1["due_date"] = convert_date_string(due_date_text, formatnum)
                     assignment_data1["class"] = course_name
                     assignment_data1["class_grade"] = class_grade
+                    print(assignment_data1)
                     half_assignment_info_list.append(assignment_data1)
         
         print("Changing class now")
@@ -284,45 +291,36 @@ def add_completion_check(unfinished_list):
 
         driver.get(href)
 
-        # TODO
-        # add try to determine if it is the error page
-        try:             
-            driver.find_element(By.CLASS_NAME, "ic-Error-page")
-            print("The "+name+" link was bad and returned with a error page")
-            continue
-        except:
-            # Attempt to get status of assignment via progress circle screen reader object
-            try:
-                circle_element = driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/div[2]/div[1]/span/span[1]/span/span[2]/div/span/span[1]/div/span/progress")
-                circle_progress = circle_element.get_attribute("value")
+        # Attempt to get status of assignment via progress circle screen reader object
+        try:
+            circle_element = driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/div[2]/div[1]/span/span[1]/span/span[2]/div/span/span[1]/div/span/progress")
+            circle_progress = circle_element.get_attribute("value")
 
-                if circle_progress == "1":
-                    # TODO finish this \/ \/ \/ \/ \/ \/ \/ \/
-                    # Need to Submit, this is really the only one I need
-                    assignment_data["name"] = name
-                    assignment_data["href"] = href
-                    assignment_data["due_date"] = due_date
-                    assignment_data["class"] = class_name
-                    assignment_data["class_grade"] = class_grade
-                    assignment_info_list.append(assignment_data)
-                elif circle_progress == "2":
-                    # Submitted and review feedback
-                    print(name+" is submitted and review feedback")
-                elif circle_progress == "3":
-                    # Still need to find an instance to tell what the value 3 means :(
-                    print(name+" is the special 3 value")
-                else:
-                    print("! error no circle value found !")
-                    print("Trying grade method.....")
-                    # TODO grade method for special case like math
-                    try:
-                        pass
-                    except:
-                        pass
-
-            except:
-                print("error")
-
+            if circle_progress == "1":
+                # TODO finish this \/ \/ \/ \/ \/ \/ \/ \/
+                # Need to Submit, this is really the only one I need
+                assignment_data["name"] = name
+                assignment_data["href"] = href
+                assignment_data["due_date"] = due_date
+                assignment_data["class"] = class_name
+                assignment_data["class_grade"] = class_grade
+                assignment_info_list.append(assignment_data)
+            elif circle_progress == "2":
+                # Submitted and review feedback
+                print(name+" is submitted and review feedback")
+            elif circle_progress == "3":
+                # Still need to find an instance to tell what the value 3 means :(
+                print(name+" is the special 3 value")
+            else:
+                print("! error no circle value found !")
+                print("Trying grade method.....")
+                # TODO grade method for special case like math
+                try:
+                    pass
+                except:
+                    pass
+        except: 
+            print("error")
 
 def assignment_sort():
     today = datetime.now()
