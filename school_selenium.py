@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 # Waiting funtions and condition functions
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import re
 
 # .env file imports
 import os
@@ -16,35 +17,22 @@ from datetime import datetime
 
 # Function to detect the due date in format so it can be converted
 def detect_date_format(date_str):
-    try:
-        # Try to parse the input string with the format "Due Month Day at Hour:MinuteAM/PM"
-        datetime.strptime(date_str, "Due %b %d at %I:%M%p")
-        return 1  # Format 1: "Due Month Day at Hour:MinuteAM/PM"
-    except ValueError:
-        pass
+    # Define regex patterns for different date formats
+    patterns = [
+        r"Due (\w{3} \d{1,2} at \d{1,2}:\d{2}[APMapm]{2})",  # Format 1: "Due Month Day at Hour:MinuteAM/PM"
+        r"(\w{3} \d{1,2})",                                   # Format 2: "Month Day"
+        r"(\w{3} \d{1,2}, \d{4})",                            # Format 3: "Month Day, Year"
+        r"(\w{3} \d{1,2}, \d{4} at \d{1,2}:\d{2}[APMapm]{2})",  # Format 4: "Month Day, Year at Hour:MinuteAM/PM"
+    ]
 
-    try:
-        # Try to parse the input string with the format "Month Day"
-        datetime.strptime(date_str, "%b %d")
-        return 2  # Format 2: "Month Day"
-    except ValueError:
-        pass
-
-    try:
-        # Try to parse the input string with the format "Month Day, Year"
-        datetime.strptime(date_str, "%b %d, %Y")
-        return 3  # Format 3: "Month Day, Year"
-    except ValueError:
-        pass
-
-    try:
-        # Try to parse the input string with the format "Month Day, Year at Hour:MinuteAM/PM"
-        datetime.strptime(date_str, "%b %d, %Y at %I:%M%p")
-        return 4  # Format 4: "Month Day, Year at Hour:MinuteAM/PM"
-    except ValueError:
-        pass
+    for idx, pattern in enumerate(patterns, start=1):
+        match = re.match(pattern, date_str)
+        if match:
+            return idx  # Return the format number if a match is found
 
     return 0  # Unknown format
+
+
 
 
 # Function to convert due date in format "July 4 at 4pm" to "YYYY-MM-DD HH:MM:SS" so it can be sorted
@@ -67,9 +55,8 @@ def convert_date_string(date_str, format_choice):
             # Format: "Month Day, Year at Hour:MinuteAM/PM"
             date_object = datetime.strptime(date_str, "%b %d, %Y at %I:%M%p")
         else:
-            raise ValueError("Invalid format_choice value")
+            return "!No due date!"
     except ValueError:
-        # if it fails to parse pass
         pass
 
     return date_object.strftime("%Y-%m-%d %H:%M:%S") if date_object else None
@@ -149,8 +136,13 @@ def check_grade(class_link):
 
     driver.get(grade_link)
 
-    grade = driver.find_element(By.CLASS_NAME, "grade").text
+    wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[2]/aside/div/div[1]/span[1]")))
+    grade = driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[2]/aside/div/div[1]/span[1]")
 
+    print(grade)
+    grade = grade.text
+    print(grade)
+    print(grade.strip("%"))
     grade = float(grade.strip("%"))/100
 
     return grade
@@ -233,7 +225,9 @@ def enumerate_assignments():
                     try:
                         ig_details = ig_info.find_element(By.CLASS_NAME, "ig-info")
                         due_date_element = ig_details.find_element(By.CLASS_NAME, "ig-details__item.assignment-date-due")
+                        print(due_date_element)
                         due_date_text = due_date_element.find_element(By.TAG_NAME, "span").text
+                        print(due_date_text)
                         # Decide what format it is and add it to formatnum to be passed in to tell the converter which format converter to use
                         formatnum = detect_date_format(due_date_text)
                         # Convert the date string to the right format and store it in the dictionary
@@ -249,14 +243,20 @@ def enumerate_assignments():
                     half_assignment_info_list.append(assignment_data1)
 
                 else:
-                    ig_title = ig_info.find_element(By.CLASS_NAME, "ig-title title item_link")
+                    ig_title = ig_info.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div[5]/div[2]/div[5]/div[2]/ul/li[2]/div/div[1]/div[1]/span/a")
                     print(ig_title)
                     link = ig_title.get_attribute("href")
                     print(link+"\n")
                     assignment_data1["name"] = ig_title.text
                     assignment_data1["href"] = ig_title.get_attribute("href")
 
-                    due_date_text = ig_info.find_element(By.CLASS_NAME, "due_date_display ig-details__item").text
+                    wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div[5]/div[2]/div[5]/div[2]/ul/li[6]/div/div[1]/div[3]/div[1]")))
+
+                    due_date_text = ig_title.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div[5]/div[2]/div[5]/div[2]/ul/li[5]/div/div[1]/div[3]/div[1]")
+
+                    print(due_date_text)
+
+                    due_date_text = due_date_text.text
 
                     formatnum = detect_date_format(due_date_text)
 
@@ -265,6 +265,7 @@ def enumerate_assignments():
                     assignment_data1["class_grade"] = class_grade
                     half_assignment_info_list.append(assignment_data1)
         
+        print("Changing class now")
         c += 1
 
     add_completion_check(half_assignment_info_list)
@@ -285,41 +286,42 @@ def add_completion_check(unfinished_list):
 
         # TODO
         # add try to determine if it is the error page
-        driver.find_element(By.CLASS_NAME, "ic-Error-page")
-        print("The "+name+" link was bad and returned with a error page")
-        continue
-
-        # Attempt to get status of assignment via progress circle screen reader object
-        try:
-            circle_element = driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/div[2]/div[1]/span/span[1]/span/span[2]/div/span/span[1]/div/span/progress")
-            circle_progress = circle_element.get_attribute("value")
-
-            if circle_progress == "1":
-                # TODO finish this \/ \/ \/ \/ \/ \/ \/ \/
-                # Need to Submit, this is really the only one I need
-                assignment_data["name"] = name
-                assignment_data["href"] = href
-                assignment_data["due_date"] = due_date
-                assignment_data["class"] = class_name
-                assignment_data["class_grade"] = class_grade
-                assignment_info_list.append(assignment_data)
-            elif circle_progress == "2":
-                # Submitted and review feedback
-                print(name+" is submitted and review feedback")
-            elif circle_progress == "3":
-                # Still need to find an instance to tell what the value 3 means :(
-                print(name+" is the special 3 value")
-            else:
-                print("! error no circle value found !")
-                print("Trying grade method.....")
-                # TODO grade method for special case like math
-                try:
-                    pass
-                except:
-                    pass
-
+        try:             
+            driver.find_element(By.CLASS_NAME, "ic-Error-page")
+            print("The "+name+" link was bad and returned with a error page")
+            continue
         except:
-            print("error")
+            # Attempt to get status of assignment via progress circle screen reader object
+            try:
+                circle_element = driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/div[2]/div[1]/span/span[1]/span/span[2]/div/span/span[1]/div/span/progress")
+                circle_progress = circle_element.get_attribute("value")
+
+                if circle_progress == "1":
+                    # TODO finish this \/ \/ \/ \/ \/ \/ \/ \/
+                    # Need to Submit, this is really the only one I need
+                    assignment_data["name"] = name
+                    assignment_data["href"] = href
+                    assignment_data["due_date"] = due_date
+                    assignment_data["class"] = class_name
+                    assignment_data["class_grade"] = class_grade
+                    assignment_info_list.append(assignment_data)
+                elif circle_progress == "2":
+                    # Submitted and review feedback
+                    print(name+" is submitted and review feedback")
+                elif circle_progress == "3":
+                    # Still need to find an instance to tell what the value 3 means :(
+                    print(name+" is the special 3 value")
+                else:
+                    print("! error no circle value found !")
+                    print("Trying grade method.....")
+                    # TODO grade method for special case like math
+                    try:
+                        pass
+                    except:
+                        pass
+
+            except:
+                print("error")
 
 
 def assignment_sort():
