@@ -138,7 +138,7 @@ def check_grade(class_link):
     driver.get(grade_link)
 
     wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[2]/aside/div/div[1]/span[1]")))
-    time.sleep(5)
+    time.sleep(2)
     grade = driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[2]/aside/div/div[1]/span[1]")
 
     print(grade)
@@ -208,11 +208,9 @@ def enumerate_assignments():
 
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, "ig-info")))
             #inside course
-
+            time.sleep(2)
             # Find all parent elements with class "ig-info"
             ig_info_elements = driver.find_elements(By.CLASS_NAME, "ig-info")
-
-            assignment_links = []
 
             for ig_info in ig_info_elements:
                 print(ig_info)
@@ -246,9 +244,10 @@ def enumerate_assignments():
                     half_assignment_info_list.append(assignment_data1)
 
                 else:
-                    ig_title = ig_info.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div[5]/div[2]/div[5]/div[2]/ul/li[2]/div/div[1]/div[1]/span/a")
+                    ig_title = ig_info.find_element(By.XPATH, "/div[1]/div[1]/span/a")
                     
                     if (ig_info.find_element(By.XPATH, "../span")).get_attribute("title") == "Page" :
+                        print("its a page......")
                         pass
                     print(ig_title)
                     link = ig_title.get_attribute("href")
@@ -256,9 +255,9 @@ def enumerate_assignments():
                     assignment_data1["name"] = ig_title.text
                     assignment_data1["href"] = ig_title.get_attribute("href")
 
-                    wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div[5]/div[2]/div[5]/div[2]/ul/li[6]/div/div[1]/div[3]/div[1]")))
+                    wait.until(EC.presence_of_element_located((By.XPATH, "div[3]/div[1]")))
 
-                    due_date_text = ig_title.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div[5]/div[2]/div[5]/div[2]/ul/li[5]/div/div[1]/div[3]/div[1]")
+                    due_date_text = ig_title.find_element(By.XPATH, "div[3]/div[1]")
 
                     print(due_date_text)
 
@@ -289,6 +288,7 @@ def add_completion_check(unfinished_list):
         class_name = each["class"]
         class_grade = each["class_grade"]
 
+        print(href)
         driver.get(href)
 
         # Attempt to get status of assignment via progress circle screen reader object
