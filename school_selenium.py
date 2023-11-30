@@ -212,6 +212,7 @@ def enumerate_assignments():
             # Find all parent elements with class "ig-info"
             ig_info_elements = driver.find_elements(By.CLASS_NAME, "ig-info")
 
+
             for ig_info in ig_info_elements:
                 print(ig_info)
                 assignment_data1 = {}
@@ -244,7 +245,7 @@ def enumerate_assignments():
                     half_assignment_info_list.append(assignment_data1)
 
                 else:
-                    ig_title = ig_info.find_element(By.XPATH, "/div[1]/div[1]/span/a")
+                    ig_title = ig_info.find_element(By.TAG_NAME, "a")
                     
                     if (ig_info.find_element(By.XPATH, "../span")).get_attribute("title") == "Page" :
                         print("its a page......")
@@ -255,9 +256,9 @@ def enumerate_assignments():
                     assignment_data1["name"] = ig_title.text
                     assignment_data1["href"] = ig_title.get_attribute("href")
 
-                    wait.until(EC.presence_of_element_located((By.XPATH, "div[3]/div[1]")))
+                    wait.until(EC.presence_of_element_located((By.CLASS_NAME, "due_date_display")))
 
-                    due_date_text = ig_title.find_element(By.XPATH, "div[3]/div[1]")
+                    due_date_text = driver.find_element(By.CLASS_NAME, "due_date_display")
 
                     print(due_date_text)
 
