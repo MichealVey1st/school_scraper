@@ -75,6 +75,8 @@ driver = webdriver.Firefox()
 # sets wait timeout
 wait = WebDriverWait(driver, timeout=10)
 
+# sets the minimum grade of an assignment to be counted (in form of a float) 
+minAssignmentGrade = float(0.80)
 
 def online():
     # sets url, username, and password
@@ -117,11 +119,13 @@ def regular():
     # finds the link for student and clicks it sending to the google login
     driver.find_element(By.ID, 'students').click()
 
+    time.sleep(2)
     # declares the email login textbox
     google_username = driver.find_element(By.ID, 'identifierId')
     # sends password to the input box then presses enter to go to the next page
     google_username.send_keys(username, Keys.ENTER)
 
+    time.sleep(2)
     # makes program wait until it finds the password login element
     # NOTE IT HAS TO BE SURROUNDED BY TWO PARENTHESIS OTHERWISE IT LOOKS FOR THE ELEMENT "By.XPATH" WHICH IS NOT WHAT ITS SUPPOSED TO BE LOOKING FOR
     wait.until(EC.presence_of_element_located((By.XPATH, "//input[@name = 'password']")))
@@ -142,12 +146,16 @@ def check_grade(class_link):
     grade = driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[2]/aside/div/div[1]/span[1]")
 
     print(grade)
-    grade = grade.text
-    print(grade)
-    print(grade.strip("%"))
-    grade = float(grade.strip("%"))/100
+    gradeval = grade.text
 
-    return grade
+    if gradeval == "N/A":
+        gradefin = float(100)/100
+    else:
+        print(grade)
+        print(gradeval.strip("%"))
+        gradefin = float(gradeval.strip("%"))/100
+
+    return gradefin
 
 def enumerate_assignments():
     # waits until it finds the element the class name
@@ -245,7 +253,7 @@ def enumerate_assignments():
                     half_assignment_info_list.append(assignment_data1)
 
                 else:
-                    ig_title = ig_info.find_element(By.TAG_NAME, "a")
+                    ig_title = ig_info.find_element(By.CLASS_NAME, "ig-title")
                     
                     if (ig_info.find_element(By.XPATH, "../span")).get_attribute("title") == "Page" :
                         print("its a page......")
@@ -290,36 +298,16 @@ def add_completion_check(unfinished_list):
         class_grade = each["class_grade"]
 
         print(href)
+        time.sleep(2)
         driver.get(href)
 
-        # Attempt to get status of assignment via progress circle screen reader object
+        # Check the grade of the assignment
         try:
-            circle_element = driver.find_element(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/div[2]/div[1]/span/span[1]/span/span[2]/div/span/span[1]/div/span/progress")
-            circle_progress = circle_element.get_attribute("value")
-
-            if circle_progress == "1":
-                # TODO finish this \/ \/ \/ \/ \/ \/ \/ \/
-                # Need to Submit, this is really the only one I need
-                assignment_data["name"] = name
-                assignment_data["href"] = href
-                assignment_data["due_date"] = due_date
-                assignment_data["class"] = class_name
-                assignment_data["class_grade"] = class_grade
+            grade_Decimal = float(eval(driver.get_attribute(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/div[2]/div[1]/span/span[2]/div/span[2]/span/span/div/span[2]/span/span/span/strong").text))
+            if grade_Decimal < minAssignmentGrade:
                 assignment_info_list.append(assignment_data)
-            elif circle_progress == "2":
-                # Submitted and review feedback
-                print(name+" is submitted and review feedback")
-            elif circle_progress == "3":
-                # Still need to find an instance to tell what the value 3 means :(
-                print(name+" is the special 3 value")
             else:
-                print("! error no circle value found !")
-                print("Trying grade method.....")
-                # TODO grade method for special case like math
-                try:
-                    pass
-                except:
-                    pass
+                print("This assignment has a high enough grade... Skipping...")
         except: 
             print("error")
 
@@ -343,8 +331,8 @@ def assignment_print(sorted_assignment_info_list):
 
 
 
-online()
-enumerate_assignments()
+#online()
+#enumerate_assignments()
 regular()
 enumerate_assignments()
 
