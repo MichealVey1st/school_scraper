@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 # Waiting funtions and condition functions
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 import re
 
 # .env file imports
@@ -16,7 +17,7 @@ from dotenv import load_dotenv
 #import time to get to sortable format
 from datetime import datetime
 
-# Function to detect the due date in format so it can be converted
+# Function to detect the due date format so it can be converted
 def detect_date_format(date_str):
     # Define regex patterns for different date formats
     patterns = [
@@ -33,10 +34,7 @@ def detect_date_format(date_str):
 
     return 0  # Unknown format
 
-
-
-
-# Function to convert due date in format "July 4 at 4pm" to "YYYY-MM-DD HH:MM:SS" so it can be sorted
+# Function to convert due date in the specified formats to "YYYY-MM-DD HH:MM:SS" for sorting
 def convert_date_string(date_str, format_choice):
     try:
         if format_choice == 1:
@@ -282,10 +280,9 @@ def enumerate_assignments():
         
         print("Changing class now")
         c += 1
-
     add_completion_check(half_assignment_info_list)
-
     driver.close()
+    break
 
 def add_completion_check(unfinished_list):
     for each in unfinished_list:
@@ -298,18 +295,32 @@ def add_completion_check(unfinished_list):
         class_grade = each["class_grade"]
 
         print(href)
-        time.sleep(2)
         driver.get(href)
+        time.sleep(2)
 
-        # Check the grade of the assignment
         try:
-            grade_Decimal = float(eval(driver.get_attribute(By.XPATH, "/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/div[2]/div[1]/span/span[2]/div/span[2]/span/span/div/span[2]/span/span/span/strong").text))
-            if grade_Decimal < minAssignmentGrade:
-                assignment_info_list.append(assignment_data)
-            else:
-                print("This assignment has a high enough grade... Skipping...")
-        except: 
-            print("error")
+            # Case 1: Points
+            points_element = driver.find_element(By.CLASS_NAME, 'points-value')
+            points_text = points_element.text
+            assignment_data["points"] = points_text
+
+        except NoSuchElementException:
+            try:
+                # Case 2: Ungraded, Possible Points
+                points_element = driver.find_element(By.XPATH, '//span[contains(@class, "points-value")]')
+                points_text = points_element.text
+                assignment_data["points"] = points_text
+
+            except NoSuchElementException:
+                try:
+                    # Case 3: Submission Details
+                    current_score_element = driver.find_element(By.XPATH, '//tr[th="Current Score:"]/td')
+                    current_score_text = current_score_element.text
+                    assignment_data["points"] = current_score_text
+
+                except NoSuchElementException as e:
+                    print(f"Error: {e}")
+                    continue  # Continue to the next iteration of the loop
 
 def assignment_sort():
     today = datetime.now()
