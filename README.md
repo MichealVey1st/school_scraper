@@ -10,3 +10,5 @@ Being a highschool student I have lots of assignments spread across multiple dif
 ### detect_date_format(date_str):
 
 This function is used to determine what format of date it found when looking up the assignments. There are 4 possible different date formats that I have found and 
+
+# __UNFINISHED__
