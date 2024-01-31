@@ -76,11 +76,11 @@ wait = WebDriverWait(driver, timeout=10)
 # sets the minimum grade of an assignment to be counted (in form of a float) 
 minAssignmentGrade = float(0.80)
 
-def online():
+def standard():
     # sets url, username, and password
-    url = os.getenv('online_url')
+    url = os.getenv('standard_url')
     username = os.getenv('email')
-    online_password = os.getenv('online_password')
+    standard_password = os.getenv('standard_password')
 
     # gets url
     driver.get(url)
@@ -93,7 +93,7 @@ def online():
     # finds password input element via id
     element_password = driver.find_element(by=By.ID, value='pseudonym_session_password')
     # types password into the password element
-    element_password.send_keys(online_password)
+    element_password.send_keys(standard_password)
     # submits the login
     element_password.submit()
 
@@ -342,7 +342,7 @@ def assignment_print(sorted_assignment_info_list):
 
 
 
-#online()
+#standard()
 #enumerate_assignments()
 regular()
 enumerate_assignments()
