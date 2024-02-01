@@ -10,6 +10,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 import re
+import json
 
 # .env file imports
 import os
@@ -75,6 +76,9 @@ wait = WebDriverWait(driver, timeout=10)
 
 # sets the minimum grade of an assignment to be counted (in form of a float) 
 minAssignmentGrade = float(0.80)
+
+# sets where the json file should go
+json_file_path = "assignments.json"
 
 def standard():
     # sets url, username, and password
@@ -158,7 +162,7 @@ def check_grade(class_link):
 def enumerate_assignments():
     # waits until it finds the element the class name
     # NOTE IT HAS TO BE SURROUNDED BY TWO PARENTHESIS OTHERWISE IT LOOKS FOR THE ELEMENT "By.CLASS_NAME" WHICH IS NOT WHAT ITS SUPPOSED TO BE LOOKING FOR
-    wait.until(EC.presence_of_element_located((By.CLASS_NAME, "ic-DashboardCard__link")))
+    # wait.until(EC.presence_of_element_located((By.CLASS_NAME, "ic-DashboardCard__link")))
 
     class_links = []
 
@@ -282,7 +286,6 @@ def enumerate_assignments():
         c += 1
     add_completion_check(half_assignment_info_list)
     driver.close()
-    break
 
 def add_completion_check(unfinished_list):
     for each in unfinished_list:
@@ -301,32 +304,80 @@ def add_completion_check(unfinished_list):
         try:
             # Case 1: Points
             points_element = driver.find_element(By.CLASS_NAME, 'points-value')
-            points_text = points_element.text
-            assignment_data["points"] = points_text
+            # turns string point value on page to a float to be compared to the min score value
+            points_val = float(eval(points_element.text.strip("Points")))
+            if points_val < minAssignmentGrade:
+                # if true add the data to the list
+                assignment_data["name"] = name
+                assignment_data["href"] = href
+                assignment_data["due_date"] = due_date
+                assignment_data["class"] = class_name
+                assignment_data["class_grade"] = class_grade
+                assignment_info_list.append(assignment_data)
+            else:
+                # else move onto the next one
+                continue
 
         except NoSuchElementException:
             try:
                 # Case 2: Ungraded, Possible Points
                 points_element = driver.find_element(By.XPATH, '//span[contains(@class, "points-value")]')
-                points_text = points_element.text
-                assignment_data["points"] = points_text
+                points_val = float(eval(points_element.text))
+                if points_val < minAssignmentGrade:
+                    assignment_data["name"] = name
+                    assignment_data["href"] = href
+                    assignment_data["due_date"] = due_date
+                    assignment_data["class"] = class_name
+                    assignment_data["class_grade"] = class_grade
+                    assignment_info_list.append(assignment_data)
+                else:
+                    continue
 
             except NoSuchElementException:
                 try:
                     # Case 3: Submission Details
-                    current_score_element = driver.find_element(By.XPATH, '//tr[th="Current Score:"]/td')
-                    current_score_text = current_score_element.text
-                    assignment_data["points"] = current_score_text
+                    points_element = driver.find_element(By.XPATH, '//tr[th="Current Score:"]/td')
+                    points_val = float(eval(points_element.text))
+                    if points_val < minAssignmentGrade:
+                        assignment_data["name"] = name
+                        assignment_data["href"] = href
+                        assignment_data["due_date"] = due_date
+                        assignment_data["class"] = class_name
+                        assignment_data["class_grade"] = class_grade
+                        assignment_info_list.append(assignment_data)
+                    else:
+                        continue
 
-                except NoSuchElementException as e:
-                    print(f"Error: {e}")
-                    continue  # Continue to the next iteration of the loop
+                except:
+                    try:
+                        points_element = driver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div[2]/div[3]/div[2]/aside/div[2]/div[2]/table/tbody/tr[3]/td')
+                        old_point_text = points_element.text
+                        # Makes it just the numbers in a list like this "15", "20"
+                        point_nums = [part for part in old_point_text.split() if part.isdigit()]
+                        # joins both values with a slash inbetween like this "15/20"
+                        new_point_text = "/".join(point_nums)
+                        points_val = float(eval(new_point_text))
+                        if points_val < minAssignmentGrade:
+                            assignment_data["name"] = name
+                            assignment_data["href"] = href
+                            assignment_data["due_date"] = due_date
+                            assignment_data["class"] = class_name
+                            assignment_data["class_grade"] = class_grade
+                            assignment_info_list.append(assignment_data)
+                        else:
+                            continue
+
+                    except NoSuchElementException as e:
+                        print(f"Error: {e}")
+                        continue  # Continue to the next iteration of the loop
 
 def assignment_sort():
     today = datetime.now()
     sorted_list = sorted(assignment_info_list, key=lambda x: (datetime.fromisoformat(x["due_date"]), x["class_grade"]))
     return sorted_list
 
+
+# *REMOVE AFTER TESTS OF JSON OUTPUT*
 def assignment_print(sorted_assignment_info_list):
     # give some room between the debug prints
     print("\n\n\n\n\n\n")
@@ -341,6 +392,12 @@ def assignment_print(sorted_assignment_info_list):
         print("\n")
 
 
+def json_output(assignment_list, json_path):
+    with open(json_path, "w") as json_file:
+        json.dump(assignment_list, json_file, indent=2)
+
+
+
 
 #standard()
 #enumerate_assignments()
@@ -348,4 +405,5 @@ regular()
 enumerate_assignments()
 
 sorted_list = assignment_sort()
-assignment_print(sorted_list)
+
+json_output(sorted_list, json_file_path)
