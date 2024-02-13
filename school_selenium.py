@@ -16,7 +16,7 @@ import json
 import os
 from dotenv import load_dotenv
 #import time to get to sortable format
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Function to detect the due date format so it can be converted
 def detect_date_format(date_str):
@@ -34,6 +34,21 @@ def detect_date_format(date_str):
             return idx  # Return the format number if a match is found
 
     return 0  # Unknown format
+
+
+# Find next sunday and return that date
+def nextSunday():
+    today = datetime.now()
+    days_ahead = 6 - today.weekday()
+
+    if days_ahead == 0:
+        days_ahead = 7
+
+    nextSundayDate = today + timedelta(days=days_ahead)
+    newSunday = nextSundayDate.replace(hour=23, minute=59, second=0)
+    newSunday = newSunday.strftime("%Y-%m-%d %H:%M:%S")
+
+    return newSunday
 
 # Function to convert due date in the specified formats to "YYYY-MM-DD HH:MM:SS" for sorting
 def convert_date_string(date_str, format_choice):
@@ -55,12 +70,11 @@ def convert_date_string(date_str, format_choice):
             # Format: "Month Day, Year at Hour:MinuteAM/PM"
             date_object = datetime.strptime(date_str, "%b %d, %Y at %I:%M%p")
         else:
-            return "!No due date!"
+            pass
     except ValueError:
         pass
 
     return date_object.strftime("%Y-%m-%d %H:%M:%S") if date_object else None
-
 
 # loads .env file
 load_dotenv()
@@ -76,6 +90,9 @@ wait = WebDriverWait(driver, timeout=10)
 
 # sets the minimum grade of an assignment to be counted (in form of a float) 
 minAssignmentGrade = float(0.80)
+
+# sets a high limit to account for the pages that only have the "20 Points possible" in turn making the assignment completion checker output with 20 instead of the expected 0-1 range
+pointsPossibleVal = float(2.0)
 
 # sets where the json file should go
 json_file_path = "assignments.json"
@@ -162,7 +179,7 @@ def check_grade(class_link):
 def enumerate_assignments():
     # waits until it finds the element the class name
     # NOTE IT HAS TO BE SURROUNDED BY TWO PARENTHESIS OTHERWISE IT LOOKS FOR THE ELEMENT "By.CLASS_NAME" WHICH IS NOT WHAT ITS SUPPOSED TO BE LOOKING FOR
-    # wait.until(EC.presence_of_element_located((By.CLASS_NAME, "ic-DashboardCard__link")))
+    wait.until(EC.presence_of_element_located((By.CLASS_NAME, "ic-DashboardCard__link")))
 
     class_links = []
 
@@ -233,22 +250,22 @@ def enumerate_assignments():
                     assignment_data1["name"] = ig_title.text
                     assignment_data1["href"] = ig_title.get_attribute("href")
 
-                    try:
-                        ig_details = ig_info.find_element(By.CLASS_NAME, "ig-info")
-                        due_date_element = ig_details.find_element(By.CLASS_NAME, "ig-details__item.assignment-date-due")
-                        print(due_date_element)
-                        due_date_text = due_date_element.find_element(By.TAG_NAME, "span").text
-                        print(due_date_text)
-                        # Decide what format it is and add it to formatnum to be passed in to tell the converter which format converter to use
-                        formatnum = detect_date_format(due_date_text)
-                        # Convert the date string to the right format and store it in the dictionary
-                        assignment_data1["due_date"] = convert_date_string(due_date_text, formatnum)
-                    except:
-                        # No due date case
-                        assignment_data1["due_date"] = "N/A"
-                        print("! No due date for this assignment !")
+                    # try:
+                    #     ig_details = ig_info.find_element(By.CLASS_NAME, "ig-info")
+                    #     due_date_element = ig_details.find_element(By.CLASS_NAME, "ig-details__item.assignment-date-due")
+                    #     print(due_date_element)
+                    #     due_date_text = due_date_element.find_element(By.TAG_NAME, "span").text
+                    #     print(due_date_text)
+                    #     # Decide what format it is and add it to formatnum to be passed in to tell the converter which format converter to use
+                    #     formatnum = detect_date_format(due_date_text)
+                    #     # Convert the date string to the right format and store it in the dictionary
+                    #     assignment_data1["due_date"] = convert_date_string(due_date_text, formatnum)
+                    # except:
+                    #     # No due date case
+                    #     assignment_data1["due_date"] = "N/A"
+                    #     print("! No due date for this assignment !")
 
-                    assignment_data1["class"] = course_name
+                    assignment_data1["class"] = class_name
                     assignment_data1["class_grade"] = class_grade
                     # Add the assignment data to the list
                     print(assignment_data1)
@@ -259,25 +276,25 @@ def enumerate_assignments():
                     
                     if (ig_info.find_element(By.XPATH, "../span")).get_attribute("title") == "Page" :
                         print("its a page......")
-                        pass
+                        continue
                     print(ig_title)
                     link = ig_title.get_attribute("href")
                     print(link+"\n")
                     assignment_data1["name"] = ig_title.text
                     assignment_data1["href"] = ig_title.get_attribute("href")
 
-                    wait.until(EC.presence_of_element_located((By.CLASS_NAME, "due_date_display")))
+                    # wait.until(EC.presence_of_element_located((By.CLASS_NAME, "due_date_display")))
 
-                    due_date_text = driver.find_element(By.CLASS_NAME, "due_date_display")
+                    # due_date_text = driver.find_element(By.CLASS_NAME, "due_date_display")
 
-                    print(due_date_text)
+                    # print(due_date_text)
 
-                    due_date_text = due_date_text.text
+                    # due_date_text = due_date_text.text
 
-                    formatnum = detect_date_format(due_date_text)
+                    # formatnum = detect_date_format(due_date_text)
 
-                    assignment_data1["due_date"] = convert_date_string(due_date_text, formatnum)
-                    assignment_data1["class"] = course_name
+                    # assignment_data1["due_date"] = convert_date_string(due_date_text, formatnum)
+                    assignment_data1["class"] = class_name
                     assignment_data1["class_grade"] = class_grade
                     print(assignment_data1)
                     half_assignment_info_list.append(assignment_data1)
@@ -293,7 +310,7 @@ def add_completion_check(unfinished_list):
 
         name = each["name"]
         href = each["href"]
-        due_date = each["due_date"]
+        # due_date = each["due_date"]
         class_name = each["class"]
         class_grade = each["class_grade"]
 
@@ -301,18 +318,59 @@ def add_completion_check(unfinished_list):
         driver.get(href)
         time.sleep(2)
 
+        # TODO check name for extra credit assignments
+
+        # get the due date from this page for it to be more relyable..... ish
+        try:
+            # Case 1
+            due_date_element = driver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/div/div[1]/span/span[1]/span/span/div/span/span/time/span[1]')
+            due_date_text = due_date_element.text
+            formatnum = detect_date_format(due_date_text)
+            # Convert the date string to the right format and store it in the dictionary
+            due_date = convert_date_string(due_date_text, formatnum)
+        except:
+            # Case 2
+            try:
+                due_date_element = driver.find_element(By.XPATH, '')
+                due_date_text = due_date_element.text
+                formatnum = detect_date_format(due_date_text)
+                # Convert the date string to the right format and store it in the dictionary
+                due_date = convert_date_string(due_date_text, formatnum)
+            except:
+                # Case 3
+                try:
+                    due_date_element = driver.find_element(By.XPATH, '')
+                    due_date_text = due_date_element.text
+                    formatnum = detect_date_format(due_date_text)
+                    # Convert the date string to the right format and store it in the dictionary
+                    due_date = convert_date_string(due_date_text, formatnum)
+
+                except:
+                    # Case 4
+                    try:
+                        due_date_element = driver.find_element(By.XPATH, '')
+                        due_date_text = due_date_element.text
+                        formatnum = detect_date_format(due_date_text)
+                        # Convert the date string to the right format and store it in the dictionary
+                        due_date = convert_date_string(due_date_text, formatnum)
+                    except NotImplementedError:
+                        print('no')
+                        # due_date = nextSunday           
+
         try:
             # Case 1: Points
             points_element = driver.find_element(By.CLASS_NAME, 'points-value')
             # turns string point value on page to a float to be compared to the min score value
             points_val = float(eval(points_element.text.strip("Points")))
-            if points_val < minAssignmentGrade:
+            if points_val < minAssignmentGrade or points_val > pointsPossibleVal:
                 # if true add the data to the list
                 assignment_data["name"] = name
                 assignment_data["href"] = href
                 assignment_data["due_date"] = due_date
                 assignment_data["class"] = class_name
                 assignment_data["class_grade"] = class_grade
+                print(assignment_data)
+                print("case 1")
                 assignment_info_list.append(assignment_data)
             else:
                 # else move onto the next one
@@ -323,12 +381,14 @@ def add_completion_check(unfinished_list):
                 # Case 2: Ungraded, Possible Points
                 points_element = driver.find_element(By.XPATH, '//span[contains(@class, "points-value")]')
                 points_val = float(eval(points_element.text))
-                if points_val < minAssignmentGrade:
+                if points_val < minAssignmentGrade or points_val > pointsPossibleVal:
                     assignment_data["name"] = name
                     assignment_data["href"] = href
                     assignment_data["due_date"] = due_date
                     assignment_data["class"] = class_name
                     assignment_data["class_grade"] = class_grade
+                    print(assignment_data)
+                    print("case 2")
                     assignment_info_list.append(assignment_data)
                 else:
                     continue
@@ -338,18 +398,21 @@ def add_completion_check(unfinished_list):
                     # Case 3: Submission Details
                     points_element = driver.find_element(By.XPATH, '//tr[th="Current Score:"]/td')
                     points_val = float(eval(points_element.text))
-                    if points_val < minAssignmentGrade:
+                    if points_val < minAssignmentGrade or points_val > pointsPossibleVal:
                         assignment_data["name"] = name
                         assignment_data["href"] = href
                         assignment_data["due_date"] = due_date
                         assignment_data["class"] = class_name
                         assignment_data["class_grade"] = class_grade
+                        print(assignment_data)
+                        print("case 3")
                         assignment_info_list.append(assignment_data)
                     else:
                         continue
 
                 except:
                     try:
+                        # Case 4: Quiz
                         points_element = driver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div[2]/div[3]/div[2]/aside/div[2]/div[2]/table/tbody/tr[3]/td')
                         old_point_text = points_element.text
                         # Makes it just the numbers in a list like this "15", "20"
@@ -357,12 +420,14 @@ def add_completion_check(unfinished_list):
                         # joins both values with a slash inbetween like this "15/20"
                         new_point_text = "/".join(point_nums)
                         points_val = float(eval(new_point_text))
-                        if points_val < minAssignmentGrade:
+                        if points_val < minAssignmentGrade or points_val > pointsPossibleVal:
                             assignment_data["name"] = name
                             assignment_data["href"] = href
                             assignment_data["due_date"] = due_date
                             assignment_data["class"] = class_name
                             assignment_data["class_grade"] = class_grade
+                            print(assignment_data)
+                            print("case 4")
                             assignment_info_list.append(assignment_data)
                         else:
                             continue
@@ -400,9 +465,7 @@ def json_output(assignment_list, json_path):
 
 
 #standard()
-#enumerate_assignments()
 regular()
-enumerate_assignments()
 
 sorted_list = assignment_sort()
 
