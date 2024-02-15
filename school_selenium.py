@@ -26,6 +26,7 @@ def detect_date_format(date_str):
         r"(\w{3} \d{1,2})",                                   # Format 2: "Month Day"
         r"(\w{3} \d{1,2}, \d{4})",                            # Format 3: "Month Day, Year"
         r"(\w{3} \d{1,2}, \d{4} at \d{1,2}:\d{2}[APMapm]{2})",  # Format 4: "Month Day, Year at Hour:MinuteAM/PM"
+        r"Due: (\w{3} \w{3} \d{1,2}, \d{4} \d{1,2}:\d{2}[APMapm]{2})", # Format 5: "Due: Day-of-week month day, year hour:minuteam/pm
     ]
 
     for idx, pattern in enumerate(patterns, start=1):
@@ -69,6 +70,8 @@ def convert_date_string(date_str, format_choice):
         elif format_choice == 4:
             # Format: "Month Day, Year at Hour:MinuteAM/PM"
             date_object = datetime.strptime(date_str, "%b %d, %Y at %I:%M%p")
+        elif format_choice == 5:
+            date_object = datetime.strptime(date_str, "Due: %a %b %d, %Y %I:%M%p")
         else:
             pass
     except ValueError:
@@ -353,9 +356,9 @@ def add_completion_check(unfinished_list):
                         formatnum = detect_date_format(due_date_text)
                         # Convert the date string to the right format and store it in the dictionary
                         due_date = convert_date_string(due_date_text, formatnum)
-                    except NotImplementedError:
-                        print('no')
-                        # due_date = nextSunday           
+                    except NoSuchElementException as e:
+                        print(f"Error: {e}")
+                        continue  # Continue to the next iteration of the loop       
 
         try:
             # Case 1: Points
@@ -374,7 +377,7 @@ def add_completion_check(unfinished_list):
                 assignment_info_list.append(assignment_data)
             else:
                 # else move onto the next one
-                continue
+                pass
 
         except NoSuchElementException:
             try:
