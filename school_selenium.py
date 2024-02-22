@@ -27,7 +27,10 @@ def detect_date_format(date_str):
         r"(\w{3} \d{1,2}, \d{4})",                            # Format 3: "Month Day, Year"
         r"(\w{3} \d{1,2}, \d{4} at \d{1,2}:\d{2}[APMapm]{2})",  # Format 4: "Month Day, Year at Hour:MinuteAM/PM"
         r"Due: (\w{3} \w{3} \d{1,2}, \d{4} \d{1,2}:\d{2}[APMapm]{2})", # Format 5: "Due: Day-of-week month day, year hour:minuteam/pm
+        r"(\w{3} \d{1,2} at \d{1,2}:\d{2}[APMapm]{2})",  # Format 6: "Month Day at Hour:MinuteAM/PM"
     ]
+
+    # Feb 23 at 11:59pm
 
     for idx, pattern in enumerate(patterns, start=1):
         match = re.match(pattern, date_str)
@@ -72,6 +75,8 @@ def convert_date_string(date_str, format_choice):
             date_object = datetime.strptime(date_str, "%b %d, %Y at %I:%M%p")
         elif format_choice == 5:
             date_object = datetime.strptime(date_str, "Due: %a %b %d, %Y %I:%M%p")
+        elif format_choice == 6:
+            date_object = datetime.strptime(date_str, "%b %d at %I:%M%p")
         else:
             pass
     except ValueError:
@@ -317,6 +322,11 @@ def add_completion_check(unfinished_list):
         class_name = each["class"]
         class_grade = each["class_grade"]
 
+
+        if href == "https://nebo.instructure.com/courses/1716830/modules/items/%7B%7B%20id%20%7D%7D" or href == "https://nebo.instructure.com/courses/1716830/modules/items/{{ id }}":
+            continue
+
+
         print(href)
         driver.get(href)
         time.sleep(2)
@@ -334,31 +344,34 @@ def add_completion_check(unfinished_list):
         except:
             # Case 2
             try:
-                due_date_element = driver.find_element(By.XPATH, '')
+                due_date_element = driver.find_element(By.XPATH, '/html/body/div[3]/div[2]/div[2]/div[3]/div[1]/div/div/header/div[2]/ul/li[1]/span[2]/span')
                 due_date_text = due_date_element.text
                 formatnum = detect_date_format(due_date_text)
                 # Convert the date string to the right format and store it in the dictionary
                 due_date = convert_date_string(due_date_text, formatnum)
-            except:
-                # Case 3
-                try:
-                    due_date_element = driver.find_element(By.XPATH, '')
-                    due_date_text = due_date_element.text
-                    formatnum = detect_date_format(due_date_text)
-                    # Convert the date string to the right format and store it in the dictionary
-                    due_date = convert_date_string(due_date_text, formatnum)
+            except NoSuchElementException as e:
+                print(f"Error: {e}")
+                continue  # Continue to the next iteration of the loop 
+            # except:
+            #     # Case 3
+            #     try:
+            #         due_date_element = driver.find_element(By.XPATH, '')
+            #         due_date_text = due_date_element.text
+            #         formatnum = detect_date_format(due_date_text)
+            #         # Convert the date string to the right format and store it in the dictionary
+            #         due_date = convert_date_string(due_date_text, formatnum)
 
-                except:
-                    # Case 4
-                    try:
-                        due_date_element = driver.find_element(By.XPATH, '')
-                        due_date_text = due_date_element.text
-                        formatnum = detect_date_format(due_date_text)
-                        # Convert the date string to the right format and store it in the dictionary
-                        due_date = convert_date_string(due_date_text, formatnum)
-                    except NoSuchElementException as e:
-                        print(f"Error: {e}")
-                        continue  # Continue to the next iteration of the loop       
+            #     except:
+            #         # Case 4
+            #         try:
+            #             due_date_element = driver.find_element(By.XPATH, '')
+            #             due_date_text = due_date_element.text
+            #             formatnum = detect_date_format(due_date_text)
+            #             # Convert the date string to the right format and store it in the dictionary
+            #             due_date = convert_date_string(due_date_text, formatnum)
+            #         except NoSuchElementException as e:
+            #             print(f"Error: {e}")
+            #             continue  # Continue to the next iteration of the loop       
 
         try:
             # Case 1: Points
@@ -377,7 +390,7 @@ def add_completion_check(unfinished_list):
                 assignment_info_list.append(assignment_data)
             else:
                 # else move onto the next one
-                pass
+                continue
 
         except NoSuchElementException:
             try:
